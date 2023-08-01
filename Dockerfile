@@ -17,9 +17,9 @@ RUN apt-get update && apt-get install -y \
     build-essential \
     curl
 
-#installing Haskell compiler | cabal is pre - installed 
+#installing Haskell compiler & cabal 
 RUN apt-get install -y haskell-platform
-
+#RUN apt install -y cabal-install
 #cloned Cardano repo
 RUN git clone https://github.com/input-output-hk/cardano-node.git
 
@@ -40,12 +40,6 @@ RUN make install
 
 #changing the directory 
 WORKDIR /app/cardano-node
-
-#updating Cabal to its latest version available
-RUN cabal update
-
-#installing cardano-node & cardano-cli using Cabal
-RUN cabal install cardano-node cardano-cli
 
 #adding Cardano binaries to the PATH
 ENV PATH="/root/.cabal/bin:${PATH}"
