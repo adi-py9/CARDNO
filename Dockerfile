@@ -1,32 +1,35 @@
 #Cardano Toolchain Docker Image by 20BCE0456 ADITYA KRISHNA
-# Using Amazon Linux base image
-FROM amazonlinux:latest
+#using ubuntu base image
+FROM ubuntu:latest
 
 LABEL maintainer="ADITYA KRISHNA <adityakrishna9525@gmail.com>"
 
-#Setting up working directory & installing sys dependencies
+#setting up working directory & installing sys dependencies
 WORKDIR /app 
 
-RUN yum update -y && yum install -y \
+RUN apt-get update && apt-get install -y \
     git \
     libtool \
-    pkgconfig \
-    openssl-devel \
-    libffi-devel
+    pkg-config \
+    libssl-dev \
+    libffi-dev \
+    automake \
+    build-essential \
+    curl
 
-#installation of Haskell compiler and Cabal 
-RUN yum install -y ghc cabal-install
+#installing Haskell compiler | cabal is pre - installed 
+RUN apt-get install -y haskell-platform
 
-#clone the Cardano repository
+#cloned Cardano repo
 RUN git clone https://github.com/input-output-hk/cardano-node.git
 
-#install libsodium
+#installing libsodium
 RUN git clone https://github.com/input-output-hk/libsodium
 
-#change current directory to the libsodium directory
+#changing current directory to the libsodium directory
 WORKDIR /app/libsodium
 
-#check out commit SHA 66f017f1
+#checking out commit SHA 66f017f1
 RUN git checkout 66f017f1
 
 #building & installation of libsodium
@@ -35,7 +38,7 @@ RUN ./configure
 RUN make
 RUN make install
 
-#building and install Cardano node and CLI
+#changing the directory 
 WORKDIR /app/cardano-node
 
 #updating Cabal to its latest version available
@@ -44,5 +47,5 @@ RUN cabal update
 #installing cardano-node & cardano-cli using Cabal
 RUN cabal install cardano-node cardano-cli
 
-# Add Cardano binaries to the PATH
+#adding Cardano binaries to the PATH
 ENV PATH="/root/.cabal/bin:${PATH}"
