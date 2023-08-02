@@ -9,33 +9,33 @@ WORKDIR /app
 
 # Installing os dependencies
 RUN apt-get update -y && apt-get upgrade -y
-RUN apt-get install automake build-essential pkg-config libffi-dev libgmp-dev libssl-dev libtinfo-dev libsystemd-dev zlib1g-dev make g++ tmux git jq wget libncursesw5 libtool bash-completion autoconf -y
+RUN apt-get install automake build-essential pkg-config libffi-dev libgmp-dev libssl-dev libtinfo-dev libsystemd-dev zlib1g-dev make g++ tmux git jq wget libncursesw5 curl libtool bash-completion autoconf -y
 
 # Install ghcup and Haskell Stack
-
 ENV BOOTSTRAP_HASKELL_NONINTERACTIVE=1
-RUN curl --proto '=https' --tlsv1.2 -sSf https://get-ghcup.haskell.org | sh
-RUN curl -sSL https://get.haskellstack.org/ | sh
+RUN curl --proto '=https' --tlsv1.2 -sSf https://get-ghcup.haskell.org -o get-ghcup.sh && \
+    chmod +x get-ghcup.sh && \
+    ./get-ghcup.sh && \
+    rm get-ghcup.sh
 
-RUN echo "export c=y">> /etc/bash.bashrc
-
-# Add ghcup to PATH
-ENV PATH=${PATH}:/root/.local/bin
 ENV PATH=${PATH}:/root/.ghcup/bin
-RUN source $HOME/.bashrc && 
+
+
 # Install cabal and GHC
-RUN /bin/bash  "source /root/.ghcup/env && ghcup upgrade"
-RUN /bin/bash  "source /root/.ghcup/env && ghcup install cabal 3.6.2.0"
-RUN /bin/bash  "source /root/.ghcup/env && ghcup set cabal 3.6.2.0"
-RUN /bin/bash  "source /root/.ghcup/env && ghcup install ghc 8.10.4"
-RUN /bin/bash  "source /root/.ghcup/env && ghcup set ghc 8.10.4"
+RUN ghcup install cabal 3.6.2.0
+RUN ghcup set cabal 3.6.2.0
+RUN ghcup install ghc 8.10.4
+RUN ghcup set ghc 8.10.4
 
 # Update Path to include Cabal and GHC exports
-RUN echo "export PATH=$HOME/.local/bin:$PATH" >> $HOME/.bashrc
+ENV PATH=${PATH}:/root/.local/bin
+ENV PATH=${PATH}:/root/.ghcup/bin
+RUN echo "export PATH=/root/.local/bin:$PATH" >> $HOME/.bashrc
 RUN echo "export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH" >> $HOME/.bashrc
 
 # Reload .bashrc to apply environment changes
-RUN source $HOME/.bashrc
+RUN /bin/bash -c "source $HOME/.bashrc"
+
 
 # installing libsodium
 RUN mkdir -p $HOME/cardano-src
@@ -65,7 +65,8 @@ WORKDIR /app/cardano-src/cardano-node
 RUN git fetch --all --recurse-submodules --tags
 
 # checking out commit SHA 66f017f1
-RUN git checkout 66f017f1
+RUN git checkout master
+RUN cabal update
 RUN cabal configure --with-compiler=ghc-8.10.4
 RUN cabal update
 RUN cabal build all
