@@ -22,10 +22,10 @@ ENV PATH=${PATH}:/root/.ghcup/bin
 
 
 # Install cabal and GHC
-RUN ghcup install cabal 3.6.2.0
-RUN ghcup set cabal 3.6.2.0
-RUN ghcup install ghc 8.10.4
-RUN ghcup set ghc 8.10.4
+RUN ghcup install cabal 3.10.1.0
+RUN ghcup set cabal 3.10.1.0
+RUN ghcup install ghc 9.6.2
+RUN ghcup set ghc 9.6.2
 
 # Update Path to include Cabal and GHC exports
 ENV PATH=${PATH}:/root/.local/bin
