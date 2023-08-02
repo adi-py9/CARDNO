@@ -67,7 +67,7 @@ RUN git fetch --all --recurse-submodules --tags
 # checking out commit SHA 66f017f1
 RUN git checkout master
 RUN cabal update
-RUN cabal configure --with-compiler=ghc-8.10.4
+RUN cabal configure --with-compiler=ghc-9.6.2
 RUN cabal update
 RUN cabal build all
 RUN cabal clean
