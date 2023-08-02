@@ -70,6 +70,8 @@ RUN cabal update
 RUN cabal configure --with-compiler=ghc-8.10.4
 RUN cabal update
 RUN cabal build all
+RUN cabal clean
+RUN cabal install --only-dependencies
 
 RUN mkdir -p $HOME/.local/bin
 RUN cp -p "$(./scripts/bin-path.sh cardano-node)" $HOME/.local/bin/
