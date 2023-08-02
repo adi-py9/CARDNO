@@ -1,45 +1,80 @@
-#Cardano Toolchain Docker Image by 20BCE0456 ADITYA KRISHNA
-#using ubuntu base image
+# Cardano Toolchain Docker Image by 20BCE0456 ADITYA KRISHNA
+# using ubuntu base image
 FROM ubuntu:latest
 
 LABEL maintainer="ADITYA KRISHNA <adityakrishna9525@gmail.com>"
 
-#setting up working directory & installing sys dependencies
-WORKDIR /app 
+# setting up working directory & installing sys dependencies
+WORKDIR /app
 
-RUN apt-get update && apt-get install -y \
-    git \
-    libtool \
-    pkg-config \
-    libssl-dev \
-    libffi-dev \
-    automake \
-    build-essential \
-    curl
+# Installing os dependencies
+RUN apt-get update -y && apt-get upgrade -y
+RUN apt-get install automake build-essential pkg-config libffi-dev libgmp-dev libssl-dev libtinfo-dev libsystemd-dev zlib1g-dev make g++ tmux git jq wget libncursesw5 libtool bash-completion autoconf -y
 
-#installing Haskell compiler & cabal 
-RUN apt-get install -y haskell-platform
-#RUN apt install -y cabal-install
-#cloned Cardano repo
-RUN git clone https://github.com/input-output-hk/cardano-node.git
+# Install ghcup and Haskell Stack
 
-#installing libsodium
+ENV BOOTSTRAP_HASKELL_NONINTERACTIVE=1
+RUN curl --proto '=https' --tlsv1.2 -sSf https://get-ghcup.haskell.org | sh
+RUN curl -sSL https://get.haskellstack.org/ | sh
+
+RUN echo "export c=y">> /etc/bash.bashrc
+
+# Add ghcup to PATH
+ENV PATH=${PATH}:/root/.local/bin
+ENV PATH=${PATH}:/root/.ghcup/bin
+RUN source $HOME/.bashrc && 
+# Install cabal and GHC
+RUN /bin/bash  "source /root/.ghcup/env && ghcup upgrade"
+RUN /bin/bash  "source /root/.ghcup/env && ghcup install cabal 3.6.2.0"
+RUN /bin/bash  "source /root/.ghcup/env && ghcup set cabal 3.6.2.0"
+RUN /bin/bash  "source /root/.ghcup/env && ghcup install ghc 8.10.4"
+RUN /bin/bash  "source /root/.ghcup/env && ghcup set ghc 8.10.4"
+
+# Update Path to include Cabal and GHC exports
+RUN echo "export PATH=$HOME/.local/bin:$PATH" >> $HOME/.bashrc
+RUN echo "export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH" >> $HOME/.bashrc
+
+# Reload .bashrc to apply environment changes
+RUN source $HOME/.bashrc
+
+# installing libsodium
+RUN mkdir -p $HOME/cardano-src
+WORKDIR /app/cardano-src
 RUN git clone https://github.com/input-output-hk/libsodium
-
-#changing current directory to the libsodium directory
-WORKDIR /app/libsodium
-
-#checking out commit SHA 66f017f1
-RUN git checkout 66f017f1
-
-#building & installation of libsodium
+WORKDIR /app/cardano-src/libsodium
+RUN git checkout dbb48cc
 RUN ./autogen.sh
 RUN ./configure
 RUN make
 RUN make install
 
-#changing the directory 
-WORKDIR /app/cardano-node
+# cloned Cardano repo
+WORKDIR /app/cardano-src
+RUN git clone https://github.com/bitcoin-core/secp256k1
+WORKDIR /app/cardano-src/secp256k1
+RUN git checkout ac83be33
+RUN ./autogen.sh
+RUN ./configure --enable-module-schnorrsig --enable-experimental
+RUN make
+RUN make check
+RUN make install
 
-#adding Cardano binaries to the PATH
-ENV PATH="/root/.cabal/bin:${PATH}"
+WORKDIR /app/cardano-src
+RUN git clone https://github.com/input-output-hk/cardano-node.git
+WORKDIR /app/cardano-src/cardano-node
+RUN git fetch --all --recurse-submodules --tags
+
+# checking out commit SHA 66f017f1
+RUN git checkout 66f017f1
+RUN cabal configure --with-compiler=ghc-8.10.4
+RUN cabal update
+RUN cabal build all
+
+RUN mkdir -p $HOME/.local/bin
+RUN cp -p "$(./scripts/bin-path.sh cardano-node)" $HOME/.local/bin/
+RUN cp -p "$(./scripts/bin-path.sh cardano-cli)" $HOME/.local/bin/
+
+ENV PATH=${PATH}:$HOME/.local/bin
+
+# Set entry point for running cardano-node by default
+ENTRYPOINT ["cardano-node"]
